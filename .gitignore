@@ -1,0 +1,37 @@
+# Gradle and Kotlin caches
+.gradle/
+.kotlin/
+build/
+.externalNativeBuild/
+.cxx/
+
+# Local IDE and SDK configuration
+.idea/
+*.iml
+local.properties
+
+# Generated packages and diagnostics
+*.apk
+*.aab
+*.apks
+*.log
+*.hprof
+/captures/
+
+# Temporary task files
+/.task/
+
+# Local credentials and signing files
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+keystore.properties
+signing.properties
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
