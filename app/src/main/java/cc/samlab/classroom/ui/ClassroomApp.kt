@@ -100,6 +100,8 @@ fun ClassroomApp() {
                     onLogin = { destination = Destination.Login },
                     onSettings = { destination = Destination.Settings },
                     username = auth.user?.username,
+                    avatar = auth.user?.avatar,
+                    server = address,
                     onCourses = {
                         destination = if (auth.user?.role == "student") Destination.Courses
                             else Destination.Login

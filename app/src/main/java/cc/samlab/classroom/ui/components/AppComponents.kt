@@ -60,6 +60,7 @@ fun EntryRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    leadingContent: (@Composable () -> Unit)? = null,
 ) {
     Surface(
         onClick = onClick,
@@ -72,7 +73,9 @@ fun EntryRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Surface(
+            if (leadingContent != null) {
+                leadingContent()
+            } else Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.secondaryContainer,
             ) {
