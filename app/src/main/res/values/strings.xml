@@ -34,4 +34,14 @@
     <string name="student_class">班级：%1$s</string>
     <string name="not_assigned">未分配</string>
     <string name="allow_local_network">允许局域网访问</string>
+    <string name="courses">课程</string>
+    <string name="course_ongoing">正在上课</string>
+    <string name="course_teacher">授课教师：%1$s</string>
+    <string name="courses_empty">暂无已选课程</string>
+    <string name="courses_failed">课程加载失败</string>
+    <string name="retry">重试</string>
+    <string name="refresh">刷新</string>
+    <string name="login_unavailable">无法登录</string>
+    <string name="student_only_login">当前客户端仅支持学生登录，请使用学生账号。</string>
+    <string name="confirm">确定</string>
 </resources>

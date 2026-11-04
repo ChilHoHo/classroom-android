@@ -35,6 +35,13 @@ internal class SessionCookies(context: Context, private val server: String) {
 
     fun update(uri: URI, headers: Map<String?, List<String>>) {
         val acceptedHeaders = headers.filterKeys { it != null }.mapKeys { it.key!! }
+        // Restored host-only cookies must not coexist with a renewed server cookie.
+        if (acceptedHeaders.any { (name, values) ->
+                name.equals("Set-Cookie", ignoreCase = true) &&
+                    values.any { it.startsWith("connect.sid=", ignoreCase = true) }
+            }) {
+            manager.cookieStore.removeAll()
+        }
         manager.put(uri, acceptedHeaders)
         if (acceptedHeaders.keys.none { it.equals("Set-Cookie", ignoreCase = true) }) return
         val cookie = manager.cookieStore.get(origin).firstOrNull { it.name == "connect.sid" }

@@ -33,7 +33,13 @@ import cc.samlab.classroom.ui.components.EntryRow
 import cc.samlab.classroom.ui.theme.ClassroomTheme
 
 @Composable
-fun HomeScreen(onLogin: () -> Unit, onSettings: () -> Unit, username: String? = null) {
+fun HomeScreen(
+    onLogin: () -> Unit,
+    onSettings: () -> Unit,
+    username: String? = null,
+    onCourses: () -> Unit = {},
+    ongoingCourses: @Composable () -> Unit = {},
+) {
     Column(
         modifier = Modifier.fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -63,6 +69,12 @@ fun HomeScreen(onLogin: () -> Unit, onSettings: () -> Unit, username: String? = 
             title = username ?: stringResource(R.string.login),
             icon = R.drawable.ic_person,
             onClick = onLogin,
+        )
+        ongoingCourses()
+        EntryRow(
+            title = stringResource(R.string.courses),
+            icon = R.drawable.ic_courses,
+            onClick = onCourses,
         )
         EntryRow(
             title = stringResource(R.string.settings),

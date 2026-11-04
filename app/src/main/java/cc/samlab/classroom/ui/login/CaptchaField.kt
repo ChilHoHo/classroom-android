@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cc.samlab.classroom.R
 
@@ -53,16 +54,22 @@ fun CaptchaField(
                 Text(stringResource(R.string.refresh_captcha))
             }
         }
-        OutlinedTextField(
-            value = code,
-            onValueChange = onCodeChange,
-            label = { Text(stringResource(R.string.captcha)) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = enabled && image != null,
-            singleLine = true,
-            shape = MaterialTheme.shapes.large,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
-        )
+        CaptchaInputPrivacy {
+            OutlinedTextField(
+                value = code,
+                onValueChange = onCodeChange,
+                label = { Text(stringResource(R.string.captcha)) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = enabled && image != null,
+                singleLine = true,
+                shape = MaterialTheme.shapes.large,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Ascii,
+                    autoCorrectEnabled = false,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+            )
+        }
     }
 }

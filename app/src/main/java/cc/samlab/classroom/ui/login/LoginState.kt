@@ -31,6 +31,11 @@ class LoginState(
         private set
     var error by mutableStateOf<String?>(null)
         private set
+    var studentOnlyDialog by mutableStateOf(false)
+        private set
+
+    fun dismissStudentOnlyDialog() { studentOnlyDialog = false }
+
     private var revision = 0
 
     suspend fun restore() {
@@ -38,7 +43,13 @@ class LoginState(
         val started = revision
         try {
             val restored = api.currentUser()
-            if (started == revision) user = restored
+            if (started == revision) {
+                if (restored != null && restored.role != "student") {
+                    studentOnlyDialog = true
+                    user = null
+                    api.logout()
+                } else user = restored
+            }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
@@ -78,13 +89,22 @@ class LoginState(
             busy = true
             error = null
             try {
-                user = client.login(username, password, code)
-                captcha = null
-                onSuccess()
+                val signedIn = client.login(username, password, code)
+                if (signedIn.role != "student") {
+                    studentOnlyDialog = true
+                    client.logout()
+                    loadCaptcha()
+                } else {
+                    user = signedIn
+                    captcha = null
+                    onSuccess()
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                error = message(failure)
+                if (failure is ApiException && failure.code == "ANDROID_STUDENT_ONLY") {
+                    studentOnlyDialog = true
+                } else error = message(failure)
                 loadCaptcha()
             } finally {
                 busy = false

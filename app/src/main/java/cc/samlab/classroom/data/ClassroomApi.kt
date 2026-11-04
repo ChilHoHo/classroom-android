@@ -21,7 +21,7 @@ data class ClassroomUser(
     val className: String?,
 )
 
-class ApiException(val status: Int, message: String) : IOException(message)
+class ApiException(val status: Int, message: String, val code: String? = null) : IOException(message)
 
 class ClassroomApi(private val context: Context, private val server: String) {
     private val cookies = SessionCookies(context, server)
@@ -31,8 +31,11 @@ class ClassroomApi(private val context: Context, private val server: String) {
         user(request("/auth/me"))
     } catch (error: ApiException) {
         if (error.status != 401) throw error
+        cookies.clear()
         null
     }
+
+    suspend fun courseSchedule(): CourseSchedule = CourseSchedule.parse(request("/schedule"))
 
     suspend fun captcha(): String = request("/captcha").getString("image")
 
@@ -96,6 +99,7 @@ class ClassroomApi(private val context: Context, private val server: String) {
                             result.optString("message").ifBlank {
                                 context.getString(R.string.request_failed)
                             },
+                            result.optString("code"),
                         )
                     }
                     result
