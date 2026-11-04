@@ -1,5 +1,7 @@
 package cc.samlab.classroom.ui.login
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Card
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +26,7 @@ fun AccountScreen(state: LoginState, onBack: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -32,6 +36,26 @@ fun AccountScreen(state: LoginState, onBack: () -> Unit) {
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(horizontal = 8.dp),
         )
+        state.user?.let { user ->
+            Card(Modifier.fillMaxWidth()) {
+                Column(
+                    Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(stringResource(R.string.user_role, when (user.role) {
+                        "student" -> stringResource(R.string.student)
+                        "teacher" -> stringResource(R.string.teacher)
+                        else -> stringResource(R.string.administrator)
+                    }))
+                    user.name?.let { Text(stringResource(R.string.student_name, it)) }
+                    user.studentNumber?.let { Text(stringResource(R.string.student_number, it)) }
+                    if (user.role == "student") {
+                        Text(stringResource(R.string.student_class,
+                            user.className ?: stringResource(R.string.not_assigned)))
+                    }
+                }
+            }
+        }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Button(
             onClick = { state.logout(onBack) },

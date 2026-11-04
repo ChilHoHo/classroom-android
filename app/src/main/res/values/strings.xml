@@ -25,4 +25,13 @@
     <string name="connection_failed">无法连接后端，请检查地址和网络后重试</string>
     <string name="invalid_server_response">后端响应异常，请检查服务器地址</string>
     <string name="request_failed">请求失败，请稍后重试</string>
+    <string name="user_role">身份：%1$s</string>
+    <string name="student">学生</string>
+    <string name="teacher">教师</string>
+    <string name="administrator">管理员</string>
+    <string name="student_name">姓名：%1$s</string>
+    <string name="student_number">学号：%1$s</string>
+    <string name="student_class">班级：%1$s</string>
+    <string name="not_assigned">未分配</string>
+    <string name="allow_local_network">允许局域网访问</string>
 </resources>

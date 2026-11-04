@@ -11,7 +11,15 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-data class ClassroomUser(val id: Long, val username: String, val avatar: String?)
+data class ClassroomUser(
+    val id: Long,
+    val username: String,
+    val avatar: String?,
+    val role: String,
+    val name: String?,
+    val studentNumber: String?,
+    val className: String?,
+)
 
 class ApiException(val status: Int, message: String) : IOException(message)
 
@@ -40,10 +48,15 @@ class ClassroomApi(private val context: Context, private val server: String) {
         cookies.clear()
     }
 
-    private fun user(result: JSONObject): ClassroomUser {
+    private suspend fun user(result: JSONObject): ClassroomUser {
         val data = result.getJSONObject("user")
+        val profile = request("/profile").optJSONObject("profile")
         return ClassroomUser(
             id = data.getLong("id"),
+            role = data.getString("role"),
+            name = profile?.optString("name")?.takeIf { it.isNotBlank() },
+            studentNumber = profile?.optString("student_no")?.takeIf { it.isNotBlank() },
+            className = profile?.optString("class_name")?.takeIf { it.isNotBlank() },
             username = data.getString("username"),
             avatar = data.optString("avatar").takeUnless { it.isEmpty() || it == "null" },
         )
