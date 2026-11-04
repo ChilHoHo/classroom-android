@@ -35,8 +35,9 @@ import java.time.Instant
 import cc.samlab.classroom.ui.courses.CourseState
 import cc.samlab.classroom.ui.courses.CourseCard
 import cc.samlab.classroom.ui.courses.CoursesScreen
+import cc.samlab.classroom.ui.courses.CourseDetailsScreen
 
-private enum class Destination { Home, Settings, Login, Courses }
+private enum class Destination { Home, Settings, Login, Courses, CourseDetails }
 
 @Composable
 fun ClassroomApp() {
@@ -45,6 +46,7 @@ fun ClassroomApp() {
     val settings = remember { BackendSettings(context.applicationContext) }
     var address by remember { mutableStateOf(settings.address) }
     var destination by rememberSaveable { mutableStateOf(Destination.Home) }
+    var selectedCourseId by rememberSaveable { mutableStateOf<Long?>(null) }
     val api = remember(address) {
         address.takeIf { it.isNotEmpty() }?.let { ClassroomApi(context.applicationContext, it) }
     }
@@ -63,7 +65,7 @@ fun ClassroomApp() {
     val goHome = { if (!auth.busy) destination = Destination.Home }
 
     LaunchedEffect(auth, destination) {
-        if (destination == Destination.Home) auth.restore()
+        if (destination == Destination.Home || auth.user == null) auth.restore()
     }
     DisposableEffect(auth, courses, context) {
         val lifecycle = (context as? LifecycleOwner)?.lifecycle
@@ -78,7 +80,13 @@ fun ClassroomApp() {
         lifecycle?.addObserver(observer)
         onDispose { lifecycle?.removeObserver(observer) }
     }
-    BackHandler(destination != Destination.Home) { goHome() }
+    val goBack = {
+        if (!auth.busy) {
+            destination = if (destination == Destination.CourseDetails) Destination.Courses
+                else Destination.Home
+        }
+    }
+    BackHandler(destination != Destination.Home) { goBack() }
 
     if (auth.studentOnlyDialog) StudentOnlyDialog(auth::dismissStudentOnlyDialog)
     Surface(Modifier.fillMaxSize()) {
@@ -106,9 +114,21 @@ fun ClassroomApp() {
                         }
                     },
                 )
-                Destination.Courses -> CoursesScreen(courses, now, goHome) {
-                    scope.launch { courses.refresh() }
-                }
+                Destination.Courses -> CoursesScreen(
+                    state = courses,
+                    onBack = goHome,
+                    onCourse = {
+                        selectedCourseId = it.id
+                        destination = Destination.CourseDetails
+                    },
+                    onRefresh = { scope.launch { courses.refresh() } },
+                )
+                Destination.CourseDetails -> CourseDetailsScreen(
+                    state = courses,
+                    courseId = selectedCourseId,
+                    onBack = goBack,
+                    onRefresh = { scope.launch { courses.refresh() } },
+                )
                 Destination.Settings -> SettingsScreen(
                     address = address,
                     onBack = goHome,

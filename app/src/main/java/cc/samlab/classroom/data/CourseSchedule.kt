@@ -9,6 +9,7 @@ data class Course(
     val className: String,
     val teacher: String,
     val term: String,
+    val englishName: String = "",
 )
 
 data class CourseSession(
@@ -16,6 +17,9 @@ data class CourseSession(
     val start: Instant,
     val end: Instant,
     val location: String,
+    val id: Long = 0,
+    val changeReason: String? = null,
+    val originalStart: Instant? = null,
 ) {
     fun isOngoing(now: Instant) = !now.isBefore(start) && now.isBefore(end)
 }
@@ -33,7 +37,7 @@ data class CourseSchedule(
                     if (item.getString("status") != "active") continue
                     add(Course(item.getLong("id"), item.getString("course_name"),
                         item.getString("name"), item.getString("teacher_name"),
-                        item.getString("term")))
+                        item.getString("term"), item.optString("english_name", "")))
                 }
             }
             val ids = courses.map { it.id }.toSet()
@@ -44,7 +48,12 @@ data class CourseSchedule(
                     val id = item.getLong("teaching_class_id")
                     if (id !in ids) continue
                     add(CourseSession(id, Instant.parse(item.getString("start_at")),
-                        Instant.parse(item.getString("end_at")), item.getString("location")))
+                        Instant.parse(item.getString("end_at")), item.getString("location"),
+                        id = item.getLong("id"),
+                        changeReason = item.optString("change_reason")
+                            .takeUnless { it.isBlank() || it == "null" },
+                        originalStart = item.optString("original_start")
+                            .takeUnless { it.isBlank() || it == "null" }?.let(Instant::parse)))
                 }
             }
             return CourseSchedule(courses, sessions.sortedBy { it.start })

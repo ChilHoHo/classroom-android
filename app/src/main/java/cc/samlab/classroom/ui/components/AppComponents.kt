@@ -23,16 +23,27 @@ import androidx.compose.ui.unit.dp
 import cc.samlab.classroom.R
 
 @Composable
-fun PageHeader(title: String, onBack: () -> Unit) {
+fun PageHeader(
+    title: String,
+    onBack: () -> Unit,
+    action: @Composable () -> Unit = {},
+) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                painterResource(R.drawable.ic_arrow_back),
-                contentDescription = stringResource(R.string.back),
-            )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    painterResource(R.drawable.ic_arrow_back),
+                    contentDescription = stringResource(R.string.back),
+                )
+            }
+            action()
         }
         Text(
             title,

@@ -44,4 +44,14 @@
     <string name="login_unavailable">无法登录</string>
     <string name="student_only_login">当前客户端仅支持学生登录，请使用学生账号。</string>
     <string name="confirm">确定</string>
+    <string name="course_details">课程详情</string>
+    <string name="course_schedule">课程安排</string>
+    <string name="course_location">地点：%1$s</string>
+    <string name="course_change_reason">调课说明：%1$s</string>
+    <string name="course_original_schedule">原安排：%1$s</string>
+    <string name="no_course_changes">—</string>
+    <string name="course_sessions_empty">暂未设置课次</string>
+    <string name="course_unavailable">该课程已不可查看</string>
+    <string name="course_english_missing">未填写英文名称</string>
+    <string name="beijing_time">北京时间</string>
 </resources>

@@ -24,17 +24,27 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import cc.samlab.classroom.R
 import cc.samlab.classroom.ui.components.PageHeader
-import java.time.Instant
+import cc.samlab.classroom.data.Course
+import androidx.compose.material3.Card
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun CoursesScreen(state: CourseState, now: Instant, onBack: () -> Unit, onRefresh: () -> Unit) {
+fun CoursesScreen(
+    state: CourseState,
+    onBack: () -> Unit,
+    onCourse: (Course) -> Unit,
+    onRefresh: () -> Unit,
+) {
     LazyColumn(
         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { PageHeader(stringResource(R.string.courses), onBack) }
+        item {
+            PageHeader(stringResource(R.string.courses), onBack) {
+                CourseRefreshButton(!state.loading, onRefresh)
+            }
+        }
         when {
             state.loading -> item {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -56,17 +66,22 @@ fun CoursesScreen(state: CourseState, now: Instant, onBack: () -> Unit, onRefres
                     LoadingIndicator(Modifier.size(96.dp).clearAndSetSemantics {})
                     Text(stringResource(R.string.courses_empty),
                         style = MaterialTheme.typography.titleLarge)
-                    TextButton(onClick = onRefresh) { Text(stringResource(R.string.refresh)) }
                 }
             }
             else -> {
                 items(state.schedule.courses, key = { it.id }) { course ->
-                    val sessions = state.schedule.sessions.filter { it.courseId == course.id }
-                    val session = sessions.firstOrNull { it.isOngoing(now) }
-                        ?: sessions.firstOrNull { !it.start.isBefore(now) }
-                    CourseCard(course, session, session?.isOngoing(now) == true)
+                    Card(
+                        onClick = { onCourse(course) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.extraLarge,
+                    ) {
+                        Text(
+                            course.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(20.dp),
+                        )
+                    }
                 }
-                item { TextButton(onClick = onRefresh) { Text(stringResource(R.string.refresh)) } }
             }
         }
     }
