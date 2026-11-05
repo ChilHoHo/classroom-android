@@ -17,10 +17,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import cc.samlab.classroom.data.loadAvatar
 
 @Composable
-fun UserAvatar(server: String, avatar: String?, userKey: String?) {
+fun UserAvatar(server: String, avatar: String?, userKey: String?, size: Dp = 50.dp) {
     val context = LocalContext.current.applicationContext
     // Reset immediately on account/server changes; never display the previous user's image.
     var bitmap by remember(server, avatar, userKey) { mutableStateOf<ImageBitmap?>(null) }
@@ -29,9 +30,9 @@ fun UserAvatar(server: String, avatar: String?, userKey: String?) {
             bitmap = loadAvatar(context, server, avatar)?.asImageBitmap()
         }
     }
-    Box(Modifier.size(50.dp).clip(CircleShape)) {
+    Box(Modifier.size(size).clip(CircleShape)) {
         bitmap?.let {
-            Image(it, contentDescription = null, modifier = Modifier.size(50.dp),
+            Image(it, contentDescription = null, modifier = Modifier.size(size),
                 contentScale = ContentScale.Crop)
         }
     }
