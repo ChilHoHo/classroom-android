@@ -177,7 +177,7 @@ fun AvatarEditorScreen(server: String, avatar: String?, username: String, onBack
                     notice = null
                     scope.launch {
                         try {
-                            val id = api.uploadAvatar(bytes)
+                            val id = api.uploadAvatar(bytes, consent = agreed)
                             selectedUri = null
                             notice = context.getString(R.string.avatar_submitted, id)
                             pending = true

@@ -42,8 +42,8 @@ class ClassroomApi(private val context: Context, private val server: String) {
     suspend fun avatarRequests(): org.json.JSONArray = request("/requests").optJSONArray("items")
         ?: throw IOException(context.getString(R.string.invalid_server_response))
 
-    suspend fun uploadAvatar(bytes: ByteArray): Long {
-        val upload = AvatarUpload(bytes)
+    suspend fun uploadAvatar(bytes: ByteArray, consent: Boolean): Long {
+        val upload = AvatarUpload(bytes, consent)
         val result = request("/avatar-requests", raw = upload.body,
             contentType = upload.contentType, expectedStatus = 202)
         return result.optLong("requestId", -1).takeIf { it > 0 }

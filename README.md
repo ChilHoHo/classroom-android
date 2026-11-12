@@ -46,7 +46,7 @@ Android 使用 HttpURLConnection 和协程访问接口，没有 WebView。验证
 
 以最新 README 为准，本功能只修改头像，不调用旧讨论稿中的 /face-avatar-requests，也不直接调用 CompreFace 或更改考勤人脸样本。CompreFace Key 仅保存在后端。自动检测无法保证排除全部动画、合成图片或确认本人身份，仍需管理员审核。
 
-联调前提：部署包含上述接口的新版后端，配置 COMPREFACE_URL、独立的 COMPREFACE_DETECTION_API_KEY 及 pose 插件。客户端未新增文档未约定的同意字段或独立授权接口；若服务端需要记录授权，须由双方补充明确字段。
+联调前提：部署包含上述接口的新版后端，配置 COMPREFACE_URL、独立的 COMPREFACE_DETECTION_API_KEY 及 pose 插件。根据最新后端的授权校验，上传 multipart 同时包含 consent=true 文本字段与 file 图片字段。用户明确勾选后才能构造上传请求。
 
 验收顺序：学生上传单人正脸 → 返回申请编号及待审核 → Web 管理员批准 → 安卓刷新状态并显示新头像；再测试拒绝并显示原因、多人/无人脸、超限、检测服务不可用、会话过期和重复提交。真实 CompreFace 与审核闭环需新版后端及真实服务联调，不能用本地格式验证或构建通过替代。
 

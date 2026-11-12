@@ -18,16 +18,19 @@ private fun avatarMimeType(bytes: ByteArray): String? {
     }
 }
 
-internal class AvatarUpload(bytes: ByteArray) {
+internal class AvatarUpload(bytes: ByteArray, consent: Boolean) {
     val boundary = "Classroom-${UUID.randomUUID()}"
     val contentType = "multipart/form-data; boundary=$boundary"
     val body: ByteArray
 
     init {
+        require(consent) { "Photo processing consent is required" }
         require(bytes.isNotEmpty() && bytes.size <= MAX_AVATAR_BYTES)
         val type = requireNotNull(avatarMimeType(bytes))
         val extension = if (type == "image/png") "png" else "jpg"
         body = ByteArrayOutputStream().apply {
+            write(("--$boundary\r\nContent-Disposition: form-data; name=\"consent\"\r\n\r\ntrue\r\n")
+                .toByteArray(Charsets.UTF_8))
             write(("--$boundary\r\nContent-Disposition: form-data; name=\"file\"; " +
                 "filename=\"avatar.$extension\"\r\nContent-Type: $type\r\n\r\n").toByteArray(Charsets.UTF_8))
             write(bytes)
