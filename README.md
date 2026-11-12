@@ -34,7 +34,9 @@ Android 使用 HttpURLConnection 和协程访问接口，没有 WebView。验证
 
 在最新下载的项目上合并头像显示、账号页“修改头像”入口和 Compose 编辑页面，保留课程、学生登录限制及局域网权限等现有功能。
 
-系统选图后验证 JPEG/PNG 格式、5 MiB 上限与可解码性，显示圆形预览；不裁剪或替换原文件。用户确认本人照片及检测/审核用途后，点击“提交”。本地检查不代替后端的人脸检测。
+系统选图后验证 JPEG/PNG 格式、5 MiB 上限与可解码性，再调节缩放及水平、垂直位置裁剪头像。确认后的 512px 正方形 JPEG 用于预览和上传。用户确认本人照片及检测/审核用途后，点击“提交”。本地检查不代替后端的人脸检测。
+
+头像操作结果与错误通过 Toast 提示。二级、三级页面复用 CRTicket-Android 的 TwoRowsTopAppBar 与 nested-scroll 做法，上滑时大标题折叠并过渡至返回按钮右侧。裁剪对话框与坐标计算改编自该项目的 AvatarCropDialog 和 cropSettingsAvatar。
 
 按组员更新后的 README 接入：
 

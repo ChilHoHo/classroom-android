@@ -18,8 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cc.samlab.classroom.R
 import cc.samlab.classroom.ui.components.EntryRow
-import cc.samlab.classroom.ui.components.PageHeader
-import cc.samlab.classroom.ui.components.PageTitle
+import cc.samlab.classroom.ui.components.PageLayout
 
 @Composable
 fun SettingsScreen(
@@ -28,12 +27,8 @@ fun SettingsScreen(
     onSaveAddress: (String) -> Unit,
 ) {
     var showAddressDialog by rememberSaveable { mutableStateOf(false) }
-    Column(
-        modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
-    ) {
-        PageHeader(onBack)
+    PageLayout(stringResource(R.string.settings), onBack) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
-        PageTitle(stringResource(R.string.settings))
         EntryRow(
             title = stringResource(R.string.backend_address),
             subtitle = address.ifEmpty { stringResource(R.string.not_configured) },

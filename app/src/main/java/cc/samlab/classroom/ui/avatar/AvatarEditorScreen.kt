@@ -3,6 +3,7 @@ package cc.samlab.classroom.ui.avatar
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.BackHandler
 import androidx.activity.result.PickVisualMediaRequest
@@ -31,8 +32,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import cc.samlab.classroom.R
-import cc.samlab.classroom.ui.components.PageHeader
-import cc.samlab.classroom.ui.components.PageTitle
+import cc.samlab.classroom.ui.components.PageLayout
 import cc.samlab.classroom.ui.components.UserAvatar
 import cc.samlab.classroom.ui.theme.ClassroomTheme
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +56,10 @@ fun AvatarEditorScreen(server: String, avatar: String?, username: String, onBack
     var statusKnown by remember { mutableStateOf(false) }
     var pending by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(notice) {
+        notice?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+        notice = null
+    }
     var requestText by remember { mutableStateOf<String?>(null) }
     suspend fun refreshRequests() {
         checking = true
@@ -102,8 +106,14 @@ fun AvatarEditorScreen(server: String, avatar: String?, username: String, onBack
     }
     BackHandler(submitting) { }
     var bitmap by remember(server, username, selectedUri) { mutableStateOf<Bitmap?>(null) }
+    var sourceBitmap by remember(server, username, selectedUri) { mutableStateOf<Bitmap?>(null) }
+    var showCrop by remember(server, username, selectedUri) { mutableStateOf(false) }
     var loading by remember(server, username, selectedUri) { mutableStateOf(selectedUri != null) }
     var error by remember(server, username, selectedUri) { mutableStateOf<Int?>(null) }
+    LaunchedEffect(error) {
+        error?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+        error = null
+    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         // Cancelling the system picker preserves the current selection.
         if (uri != null) selectedUri = uri.toString()
@@ -134,10 +144,10 @@ fun AvatarEditorScreen(server: String, avatar: String?, username: String, onBack
                     decoder.setTargetSize(maxOf(1, (info.size.width * scale).toInt()), maxOf(1, (info.size.height * scale).toInt()))
                     decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
                 }
-                bytes to decoded
+                decoded
             }
-            photoBytes = loaded.first
-            bitmap = loaded.second
+            sourceBitmap = loaded
+            showCrop = true
         } catch (e: PhotoError) {
             error = e.messageId
         } catch (_: java.io.IOException) {
@@ -150,6 +160,40 @@ fun AvatarEditorScreen(server: String, avatar: String?, username: String, onBack
             loading = false
         }
     }
+    if (showCrop && sourceBitmap != null) {
+        AvatarCropDialog(
+            bitmap = sourceBitmap!!,
+            busy = loading,
+            onDismiss = {
+                showCrop = false
+                if (photoBytes == null) selectedUri = null
+            },
+            onConfirm = { zoom, x, y ->
+                loading = true
+                scope.launch {
+                    try {
+                        val cropped = withContext(Dispatchers.Default) {
+                            val image = cropAvatar(sourceBitmap!!, zoom, x, y)
+                            val output = java.io.ByteArrayOutputStream()
+                            if (!image.compress(Bitmap.CompressFormat.JPEG, 90, output))
+                                throw java.io.IOException("JPEG encoding failed")
+                            image to output.toByteArray()
+                        }
+                        bitmap = cropped.first
+                        photoBytes = cropped.second
+                        agreed = false
+                        showCrop = false
+                    } catch (_: IllegalArgumentException) {
+                        error = R.string.avatar_read_failed
+                    } catch (_: java.io.IOException) {
+                        error = R.string.avatar_read_failed
+                    } finally {
+                        loading = false
+                    }
+                }
+            },
+        )
+    }
     AvatarEditorContent(
         preview = bitmap,
         loading = loading,
@@ -158,11 +202,11 @@ fun AvatarEditorScreen(server: String, avatar: String?, username: String, onBack
         currentAvatar = { UserAvatar(server, avatar, username, size = 144.dp) },
         onPick = { if (!submitting) picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         onClear = { if (!submitting) selectedUri = null },
+        onCrop = { if (!submitting) showCrop = true },
         onBack = { if (!submitting) onBack() },
         busy = submitting,
         submission = {
             requestText?.let { Text(it) }
-            notice?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             TextButton(onClick = { scope.launch { notice = null; refreshRequests() } }, enabled = !checking && !submitting) { Text(stringResource(R.string.avatar_refresh_status)) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = agreed, onCheckedChange = { agreed = it }, enabled = !submitting)
@@ -204,16 +248,13 @@ internal fun AvatarEditorContent(
     currentAvatar: @Composable () -> Unit, onPick: () -> Unit, onClear: () -> Unit, onBack: () -> Unit,
     submission: (@Composable () -> Unit)? = null,
     busy: Boolean = false,
+    onCrop: () -> Unit = {},
 ) {
-    Column(
-        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
-    ) {
-        PageHeader(onBack)
+    PageLayout(stringResource(R.string.change_avatar), onBack) {
     Column(
         Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        PageTitle(stringResource(R.string.change_avatar))
         Card(shape = MaterialTheme.shapes.extraLarge, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -237,11 +278,10 @@ internal fun AvatarEditorContent(
                 if (hasSelection) TextButton(onClick = onClear, enabled = !loading && !busy) {
                     Text(stringResource(R.string.avatar_clear_selection))
                 }
+                if (preview != null) TextButton(onClick = onCrop, enabled = !loading && !busy) {
+                    Text(stringResource(R.string.settings_crop_avatar))
+                }
             }
-        }
-        error?.let {
-            Text(stringResource(it), color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         }
         OutlinedCard(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

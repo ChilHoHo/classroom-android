@@ -19,8 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cc.samlab.classroom.R
-import cc.samlab.classroom.ui.components.PageHeader
-import cc.samlab.classroom.ui.components.PageTitle
+import cc.samlab.classroom.ui.components.PageLayout
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -32,15 +31,12 @@ fun CourseDetailsScreen(
 ) {
     val course = state.schedule.courses.find { it.id == courseId }
     val sessions = state.schedule.sessions.filter { it.courseId == courseId }
-    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-        PageHeader(onBack) { CourseRefreshButton(!state.loading, onRefresh) }
+    PageLayout(stringResource(R.string.course_details), onBack,
+        action = { CourseRefreshButton(!state.loading, onRefresh) }) {
     LazyColumn(
         Modifier.weight(1f).padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
-            PageTitle(stringResource(R.string.course_details))
-        }
         when {
             state.loading -> item { LoadingIndicator() }
             state.failed -> item {

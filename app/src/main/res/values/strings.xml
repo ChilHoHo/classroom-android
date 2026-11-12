@@ -59,7 +59,7 @@
     <string name="avatar_preview">所选照片的圆形头像预览</string>
     <string name="avatar_local_preview">新头像预览</string>
     <string name="avatar_current">当前头像</string>
-    <string name="avatar_preview_note">圆形区域为显示预览，未修改原图或当前头像。</string>
+    <string name="avatar_preview_note">确认裁剪后提交照片。</string>
     <string name="avatar_select">从相册选择照片</string>
     <string name="avatar_reselect">重新选择照片</string>
     <string name="avatar_clear_selection">取消本次选择</string>
@@ -84,4 +84,10 @@
     <string name="avatar_latest_request">最近申请：%1$s</string>
     <string name="avatar_review_note">审核说明：%1$s</string>
     <string name="avatar_no_requests">暂无头像申请</string>
+    <string name="settings_crop_avatar">裁切头像</string>
+    <string name="settings_crop_zoom">缩放</string>
+    <string name="settings_crop_horizontal">水平位置</string>
+    <string name="settings_crop_vertical">垂直位置</string>
+    <string name="settings_save_avatar">确认裁剪</string>
+    <string name="action_cancel">取消</string>
 </resources>
