@@ -30,6 +30,7 @@ import cc.samlab.classroom.ui.login.LoginScreen
 import cc.samlab.classroom.ui.login.LoginState
 import cc.samlab.classroom.ui.settings.SettingsScreen
 import cc.samlab.classroom.ui.avatar.AvatarEditorScreen
+import cc.samlab.classroom.ui.attendance.AttendanceScreen
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -38,7 +39,7 @@ import cc.samlab.classroom.ui.courses.CourseCard
 import cc.samlab.classroom.ui.courses.CoursesScreen
 import cc.samlab.classroom.ui.courses.CourseDetailsScreen
 
-private enum class Destination { Home, Settings, Login, Courses, CourseDetails, AvatarEditor }
+private enum class Destination { Home, Settings, Login, Courses, CourseDetails, AvatarEditor, Attendance }
 
 @Composable
 fun ClassroomApp() {
@@ -106,6 +107,9 @@ fun ClassroomApp() {
                     username = auth.user?.username,
                     avatar = auth.user?.avatar,
                     server = address,
+                    onAttendance = {
+                        destination = if (auth.user?.role == "student") Destination.Attendance else Destination.Login
+                    },
                     onCourses = {
                         destination = if (auth.user?.role == "student") Destination.Courses
                             else Destination.Login
@@ -120,6 +124,15 @@ fun ClassroomApp() {
                         }
                     },
                 )
+                Destination.Attendance -> if (auth.user?.role == "student" && api != null) {
+                    androidx.compose.runtime.key(address, auth.user!!.id) {
+                        AttendanceScreen(api, goHome,
+                            onAvatar = { destination = Destination.AvatarEditor },
+                            onLogin = { auth.logout { destination = Destination.Login } })
+                    }
+                } else {
+                    LaunchedEffect(Unit) { destination = Destination.Login }
+                }
                 Destination.Courses -> CoursesScreen(
                     state = courses,
                     onBack = goHome,

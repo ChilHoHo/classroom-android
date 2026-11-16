@@ -41,6 +41,7 @@ fun HomeScreen(
     avatar: String? = null,
     server: String = "",
     onCourses: () -> Unit = {},
+    onAttendance: () -> Unit = {},
     ongoingCourses: @Composable () -> Unit = {},
 ) {
     Column(
@@ -77,6 +78,11 @@ fun HomeScreen(
             },
         )
         ongoingCourses()
+        EntryRow(
+            title = stringResource(R.string.attendance),
+            icon = R.drawable.ic_person,
+            onClick = onAttendance,
+        )
         EntryRow(
             title = stringResource(R.string.courses),
             icon = R.drawable.ic_courses,

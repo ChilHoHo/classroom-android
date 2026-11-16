@@ -39,6 +39,29 @@ class ClassroomApi(private val context: Context, private val server: String) {
 
     suspend fun captcha(): String = request("/captcha").getString("image")
 
+    suspend fun faceStatus(): JSONObject = request("/faces/me")
+
+    suspend fun faceConsent(agree: Boolean) {
+        request("/faces/consent", JSONObject().put("decision", if (agree) "agree" else "withdraw")
+            .put("policy_version", "face-v1"))
+    }
+
+    suspend fun attendanceTasks(): org.json.JSONArray = request("/attendance-tasks/available")
+        .optJSONArray("items") ?: throw IOException(context.getString(R.string.invalid_server_response))
+
+    suspend fun attendanceHistory(): org.json.JSONArray = request("/attendance/me")
+        .optJSONArray("items") ?: throw IOException(context.getString(R.string.invalid_server_response))
+
+    suspend fun checkIn(taskId: Long, jpeg: ByteArray): JSONObject {
+        require(taskId > 0 && jpeg.isNotEmpty() && jpeg.size <= MAX_AVATAR_BYTES)
+        val boundary = "Classroom-${java.util.UUID.randomUUID()}"
+        val header = "--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"capture.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n"
+        val payload = header.toByteArray() + jpeg + "\r\n--$boundary--\r\n".toByteArray()
+        return request("/attendance-tasks/$taskId/check-in", raw = payload,
+            contentType = "multipart/form-data; boundary=$boundary",
+            acceptResponse = { status, body -> validCheckInResponse(status, body.optString("status")) })
+    }
+
     suspend fun avatarRequests(): org.json.JSONArray = request("/requests").optJSONArray("items")
         ?: throw IOException(context.getString(R.string.invalid_server_response))
 
@@ -77,7 +100,8 @@ class ClassroomApi(private val context: Context, private val server: String) {
     }
 
     private suspend fun request(path: String, body: JSONObject? = null, raw: ByteArray? = null,
-        contentType: String? = null, expectedStatus: Int? = null): JSONObject =
+        contentType: String? = null, expectedStatus: Int? = null,
+        acceptResponse: ((Int, JSONObject) -> Boolean)? = null): JSONObject =
         mutex.withLock {
             withContext(Dispatchers.IO) {
                 val uri = URI("$server/api$path")
@@ -114,7 +138,8 @@ class ClassroomApi(private val context: Context, private val server: String) {
                             result.optString("code"),
                         )
                     }
-                    if (expectedStatus != null && status != expectedStatus) {
+                    if ((expectedStatus != null && status != expectedStatus) ||
+                        acceptResponse?.invoke(status, result) == false) {
                         throw IOException(context.getString(R.string.invalid_server_response))
                     }
                     result
