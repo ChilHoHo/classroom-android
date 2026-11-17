@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
@@ -28,6 +30,7 @@ import cc.samlab.classroom.data.ApiException
 import cc.samlab.classroom.data.ClassroomApi
 import cc.samlab.classroom.data.MAX_AVATAR_BYTES
 import cc.samlab.classroom.ui.components.PageLayout
+import cc.samlab.classroom.ui.components.AttendanceEmptyState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,8 +43,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AttendanceScreen(api: ClassroomApi, onBack: () -> Unit, onAvatar: () -> Unit, onLogin: () -> Unit) {
+fun AttendanceScreen(api: ClassroomApi, onBack: () -> Unit, onAvatar: () -> Unit, onPrivacy: () -> Unit, onLogin: () -> Unit) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
@@ -97,7 +101,10 @@ fun AttendanceScreen(api: ClassroomApi, onBack: () -> Unit, onAvatar: () -> Unit
         captured = success
         if (!success) clearPhoto()
     }
-    LaunchedEffect(api) { refresh() }
+    LaunchedEffect(api) {
+        withContext(Dispatchers.IO) { cleanExpiredCaptures(File(context.cacheDir, "attendance"), capturePath) }
+        refresh()
+    }
     val lifecycle = (context as? LifecycleOwner)?.lifecycle
     val resume by rememberUpdatedState<() -> Unit> {
         if (!busy && !refreshing) scope.launch { refresh() }
@@ -134,44 +141,35 @@ fun AttendanceScreen(api: ClassroomApi, onBack: () -> Unit, onAvatar: () -> Unit
         finally { busy = false }
     }
     BackHandler(busy) {}
-    PageLayout(stringResource(R.string.attendance), { if (!busy) onBack() }) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp),
+    PageLayout(stringResource(R.string.attendance), { if (!busy) onBack() },
+        action = { IconButton(enabled = !busy && !refreshing, onClick = { scope.launch { refresh() } }) {
+            Icon(painterResource(R.drawable.ic_refresh), contentDescription = stringResource(R.string.attendance_refresh))
+        } }) {
+        PullToRefreshBox(isRefreshing = refreshing, onRefresh = { if (!busy && !refreshing) scope.launch { refresh() } }, modifier = Modifier.weight(1f)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            TextButton(onClick = { scope.launch { refresh() } }, enabled = !busy && !refreshing) {
-                Text(stringResource(if (refreshing) R.string.attendance_refreshing else R.string.attendance_refresh))
-            }
             if (needsLogin) Button(onClick = onLogin, enabled = !busy) { Text(stringResource(R.string.attendance_login)) }
             if (!known) Text(stringResource(R.string.attendance_unknown))
             face?.let { status ->
                 if (!status.optBoolean("approvedAvatar")) {
-                    Text(stringResource(R.string.attendance_avatar_required))
-                    TextButton(onClick = onAvatar, enabled = !busy) { Text(stringResource(R.string.change_avatar)) }
+                    Surface(color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(stringResource(R.string.attendance_avatar_required), style = MaterialTheme.typography.bodyLarge)
+                            TextButton(onClick = onAvatar, enabled = !busy) { Text(stringResource(R.string.change_avatar), color = MaterialTheme.colorScheme.onErrorContainer) }
+                        }
+                    }
                 }
                 if (!status.optBoolean("consent")) {
-                    Text(stringResource(R.string.attendance_consent_notice))
-                    Button(enabled = known && !busy && !refreshing, onClick = {
-                        busy = true
-                        scope.launch {
-                            try { api.faceConsent(true); refresh() }
-                            catch (e: Exception) { error(e) }
-                            finally { busy = false }
-                        }
-                    }) { Text(stringResource(R.string.attendance_agree)) }
+                    Text(stringResource(R.string.privacy_face_not_granted))
+                    TextButton(onClick = onPrivacy, enabled = !busy) { Text(stringResource(R.string.privacy_face_settings)) }
                 } else {
                     Text(stringResource(if (status.optBoolean("ready")) R.string.attendance_ready else R.string.attendance_sync))
-                    TextButton(enabled = !busy && !refreshing, onClick = {
-                        busy = true
-                        scope.launch {
-                            try { api.faceConsent(false); clearPhoto(); refresh() }
-                            catch (e: Exception) { error(e) }
-                            finally { busy = false }
-                        }
-                    }) { Text(stringResource(R.string.attendance_withdraw)) }
                 }
             }
             result?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
             Text(stringResource(R.string.attendance_available), style = MaterialTheme.typography.titleLarge)
-            if (known && tasks.isEmpty()) Text(stringResource(R.string.attendance_empty))
+            if (known && tasks.isEmpty()) AttendanceEmptyState(stringResource(R.string.attendance_empty), R.drawable.ic_attendance_task)
             for (task in tasks) {
                 val id = task.optLong("id")
                 val record = history.find { it.optLong("task_id") == id }
@@ -224,12 +222,13 @@ fun AttendanceScreen(api: ClassroomApi, onBack: () -> Unit, onAvatar: () -> Unit
                 TextButton(onClick = { clearPhoto() }, enabled = !busy) { Text(stringResource(R.string.action_cancel)) }
             }
             Text(stringResource(R.string.attendance_history), style = MaterialTheme.typography.titleLarge)
-            if (known && history.isEmpty()) Text(stringResource(R.string.attendance_no_history))
+            if (known && history.isEmpty()) AttendanceEmptyState(stringResource(R.string.attendance_no_history), R.drawable.ic_attendance_history)
             history.forEach { record ->
                 ListItem(headlineContent = { Text(record.optString("name")) },
                     supportingContent = { Text(displayTime(record.optString("checked_at"))) },
                     trailingContent = { Text(stringResource(statusLabel(record.optString("status")))) })
             }
+        }
         }
     }
 }

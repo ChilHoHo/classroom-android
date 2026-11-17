@@ -25,6 +25,8 @@ fun SettingsScreen(
     address: String,
     onBack: () -> Unit,
     onSaveAddress: (String) -> Unit,
+    onPrivacy: () -> Unit,
+    onBackgroundReminders: () -> Unit,
 ) {
     var showAddressDialog by rememberSaveable { mutableStateOf(false) }
     PageLayout(stringResource(R.string.settings), onBack) {
@@ -35,6 +37,10 @@ fun SettingsScreen(
             icon = R.drawable.ic_server,
             onClick = { showAddressDialog = true },
         )
+        androidx.compose.foundation.layout.Spacer(Modifier.padding(6.dp))
+        EntryRow(title = stringResource(R.string.privacy), icon = R.drawable.ic_person, onClick = onPrivacy)
+        androidx.compose.foundation.layout.Spacer(Modifier.padding(6.dp))
+        EntryRow(title = stringResource(R.string.background_reminders), icon = R.drawable.ic_attendance_task, onClick = onBackgroundReminders)
         }
     }
     if (showAddressDialog) {

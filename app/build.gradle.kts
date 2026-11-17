@@ -3,6 +3,11 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Developers can build without a local Firebase project; push is disabled until configured.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "cc.samlab.classroom"
     compileSdk {
@@ -37,6 +42,8 @@ android {
 }
 
 dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:35.2.0"))
+    implementation("com.google.firebase:firebase-messaging")
     implementation(libs.android.svg)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

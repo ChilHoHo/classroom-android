@@ -52,6 +52,10 @@ class ClassroomApi(private val context: Context, private val server: String) {
     suspend fun attendanceHistory(): org.json.JSONArray = request("/attendance/me")
         .optJSONArray("items") ?: throw IOException(context.getString(R.string.invalid_server_response))
 
+    suspend fun registerPushToken(token: String) {
+        request("/android/push-token", JSONObject().put("token", token))
+    }
+
     suspend fun checkIn(taskId: Long, jpeg: ByteArray): JSONObject {
         require(taskId > 0 && jpeg.isNotEmpty() && jpeg.size <= MAX_AVATAR_BYTES)
         val boundary = "Classroom-${java.util.UUID.randomUUID()}"
