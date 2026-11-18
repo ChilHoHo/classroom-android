@@ -109,6 +109,7 @@
     <string name="background_reminders">后台考勤提醒</string>
     <string name="background_reminders_description">开启后，Classroom 会在后台约每 15 秒检查新的考勤任务，并显示一条持续运行的通知。此功能会使用网络并增加耗电；系统强行停止应用后，需要重新打开 Classroom。</string>
     <string name="background_reminders_active">后台考勤提醒正在运行</string>
+    <string name="background_reminders_starting">正在启动后台考勤提醒</string>
     <string name="background_reminders_inactive">后台考勤提醒未运行</string>
     <string name="background_reminders_start">开启后台提醒</string>
     <string name="background_reminders_stop">关闭后台提醒</string>

@@ -27,27 +27,34 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 // Adapted from CRTicket-Android's user-started TicketMonitorService: keep a visible
 // foreground notification, persist intent, poll, and allow the user to stop it.
 class AttendanceReminderService : Service() {
+    enum class State { Stopped, Starting, Running, Failed }
+
     companion object {
         private const val PREFS = "attendance_reminder"
         private const val CHANNEL = "attendance-monitor"
         private const val ID = 7301
         private const val STOP = "cc.samlab.classroom.STOP_ATTENDANCE_REMINDER"
-        @Volatile var running = false
-            private set
+        private val serviceState = MutableStateFlow(State.Stopped)
+        val state = serviceState.asStateFlow()
 
         fun start(context: Context, address: String, userId: Long) {
             require(address.isNotBlank() && userId > 0)
+            if (state.value in setOf(State.Starting, State.Running)) return
             val app = context.applicationContext
             app.getSharedPreferences(PREFS, MODE_PRIVATE).edit()
                 .putBoolean("enabled", true).putString("address", address).putLong("userId", userId).apply()
+            serviceState.value = State.Starting
             try { ContextCompat.startForegroundService(app, Intent(app, AttendanceReminderService::class.java)) }
             catch (error: Exception) {
                 app.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
-                throw error
+                Log.w("AttendanceReminder", "Unable to request reminder: ${error.javaClass.simpleName}")
+                serviceState.value = State.Failed
             }
         }
 
@@ -55,11 +62,12 @@ class AttendanceReminderService : Service() {
             val app = context.applicationContext
             app.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
             app.stopService(Intent(app, AttendanceReminderService::class.java))
+            serviceState.value = State.Stopped
         }
 
         fun restore(context: Context, address: String, userId: Long) {
             val prefs = context.getSharedPreferences(PREFS, MODE_PRIVATE)
-            if (!running && prefs.getBoolean("enabled", false) && prefs.getString("address", "") == address &&
+            if (prefs.getBoolean("enabled", false) && prefs.getString("address", "") == address &&
                 prefs.getLong("userId", 0) == userId) start(context, address, userId)
         }
     }
@@ -73,6 +81,7 @@ class AttendanceReminderService : Service() {
         val address = prefs.getString("address", "").orEmpty()
         val userId = prefs.getLong("userId", 0)
         if (!prefs.getBoolean("enabled", false) || address.isBlank() || userId <= 0) {
+            serviceState.value = State.Stopped
             stopSelf()
             return START_NOT_STICKY
         }
@@ -80,10 +89,11 @@ class AttendanceReminderService : Service() {
             val notification = ongoingNotification()
             if (Build.VERSION.SDK_INT >= 34) startForeground(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
             else startForeground(ID, notification)
-            running = true
+            serviceState.value = State.Running
         } catch (error: Exception) {
             Log.w("AttendanceReminder", "Unable to start reminder: ${error.javaClass.simpleName}")
             prefs.edit().putBoolean("enabled", false).apply()
+            serviceState.value = State.Failed
             stopSelf()
             return START_NOT_STICKY
         }
@@ -147,7 +157,7 @@ class AttendanceReminderService : Service() {
     }
 
     override fun onDestroy() {
-        running = false
+        serviceState.compareAndSet(State.Running, State.Stopped)
         scope.cancel()
         super.onDestroy()
     }

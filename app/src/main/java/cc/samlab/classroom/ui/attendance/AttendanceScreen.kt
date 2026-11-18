@@ -137,7 +137,12 @@ fun AttendanceScreen(api: ClassroomApi, onBack: () -> Unit, onAvatar: () -> Unit
             }
             photo = loaded.first
             bytes = loaded.second
-        } catch (e: Exception) { clearPhoto(); error(e, R.string.avatar_read_failed) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            clearPhoto()
+            error(e, R.string.avatar_read_failed)
+        }
         finally { busy = false }
     }
     BackHandler(busy) {}
