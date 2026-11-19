@@ -27,8 +27,8 @@ android {
     buildTypes {
         release {
             optimization {
+                // Use full R8 optimization. Scoped optimization caused a startup IllegalAccessError.
                 enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
         }
     }
